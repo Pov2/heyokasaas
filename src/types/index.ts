@@ -25,3 +25,27 @@ export type Supplier = {
   updatedAt: Date
   _count?: { products: number }
 }
+
+export type Product = {
+  id: string
+  name: string
+  description?: string | null
+  price: number
+  cost?: number | null
+  stock: number
+  unit: string
+  active: boolean
+  categoryId?: string | null
+  category?: { id: string; name: string } | null
+  supplierId?: string | null
+  supplier?: { id: string; name: string } | null
+  businessId: string
+  createdAt: Date
+  updatedAt: Date
+  _count?: { orderItems: number }
+}
+
+export type Category = {
+  id: string
+  name: string
+}
