@@ -49,3 +49,28 @@ export type Category = {
   id: string
   name: string
 }
+
+export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'IN_PROGRESS' | 'READY' | 'DELIVERED' | 'CANCELLED'
+
+export type OrderItem = {
+  id: string
+  quantity: number
+  price: number
+  productId: string
+  product: { id: string; name: string; unit: string }
+  orderId: string
+}
+
+export type Order = {
+  id: string
+  number: number
+  status: OrderStatus
+  total: number
+  notes?: string | null
+  customerId?: string | null
+  customer?: { id: string; name: string } | null
+  businessId: string
+  items: OrderItem[]
+  createdAt: Date
+  updatedAt: Date
+}
