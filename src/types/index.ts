@@ -87,3 +87,16 @@ export type Employee = {
   createdAt: Date
   updatedAt: Date
 }
+
+export type Reservation = {
+  id: string
+  name: string
+  phone?: string | null
+  date: Date | string
+  partySize: number
+  notes?: string | null
+  confirmed: boolean
+  businessId: string
+  createdAt: Date
+  updatedAt: Date
+}
