@@ -69,15 +69,17 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { customerId, notes, items } = body
+  const { customerId, notes, items, tableId } = body
 
-  if (!items || !Array.isArray(items) || items.length === 0) {
+  // Allow creating a draft order with no items (for table-based workflows)
+  const itemsArray = Array.isArray(items) ? items : []
+  if (itemsArray.length === 0 && !tableId) {
     return NextResponse.json({ error: 'El pedido debe tener al menos un artículo' }, { status: 400 })
   }
 
   const count = await prisma.order.count({ where: { businessId } })
   const number = count + 1
-  const total = items.reduce((acc: number, item: { quantity: number; price: number }) => acc + item.quantity * item.price, 0)
+  const total = itemsArray.reduce((acc: number, item: { quantity: number; price: number }) => acc + item.quantity * item.price, 0)
 
   const order = await prisma.order.create({
     data: {
@@ -85,9 +87,10 @@ export async function POST(request: NextRequest) {
       total,
       notes: notes?.trim() || null,
       customerId: customerId || null,
+      tableId: tableId || null,
       businessId,
       items: {
-        create: items.map((item: { productId: string; quantity: number; price: number }) => ({
+        create: itemsArray.map((item: { productId: string; quantity: number; price: number }) => ({
           productId: item.productId,
           quantity: Number(item.quantity),
           price: Number(item.price),

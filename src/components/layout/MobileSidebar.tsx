@@ -14,6 +14,7 @@ import {
   Package,
   UserCheck,
   CalendarDays,
+  LayoutGrid,
   Receipt,
   LogOut,
 } from 'lucide-react'
@@ -28,6 +29,7 @@ const navItems = [
   { href: '/dashboard/stock', label: 'Stock', icon: Package },
   { href: '/dashboard/empleados', label: 'Empleados', icon: UserCheck },
   { href: '/dashboard/reservas', label: 'Reservas', icon: CalendarDays, restauranteOnly: true },
+  { href: '/dashboard/mesas', label: 'Mesas', icon: LayoutGrid, restauranteOnly: true },
   { href: '/dashboard/facturacion', label: 'Facturación', icon: Receipt },
 ]
 
