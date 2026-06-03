@@ -119,6 +119,7 @@ export function ProductTable({ products, onEdit, onDeleted }: ProductTableProps)
               </td>
               <td className="px-4 py-3 text-right font-semibold text-slate-900">
                 {product.price.toFixed(2)} €
+                <span className="block text-xs font-normal text-slate-400">IVA {product.vatRate}%</span>
               </td>
               <td className="px-4 py-3 text-right text-slate-500">
                 {product.cost !== null && product.cost !== undefined

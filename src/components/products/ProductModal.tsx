@@ -41,6 +41,7 @@ export function ProductModal({ open, onClose, onSuccess, editProduct }: ProductM
           cost: data.cost,
           stock: data.stock,
           unit: data.unit,
+          vatRate: data.vatRate,
           categoryId: data.categoryId,
           supplierId: data.supplierId,
           active: data.active,

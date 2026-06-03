@@ -19,6 +19,7 @@ export interface ProductFormData {
   cost: string
   stock: string
   unit: string
+  vatRate: string
   categoryId: string
   supplierId: string
   active: boolean
@@ -34,6 +35,7 @@ export function ProductForm({ initial, onSubmit, onCancel, isLoading }: ProductF
     cost: initial?.cost !== undefined && initial.cost !== null ? String(initial.cost) : '',
     stock: initial?.stock !== undefined ? String(initial.stock) : '0',
     unit: initial?.unit ?? 'ud',
+    vatRate: initial?.vatRate !== undefined ? String(initial.vatRate) : '10',
     categoryId: initial?.categoryId ?? '',
     supplierId: initial?.supplierId ?? '',
     active: initial?.active !== undefined ? initial.active : true,
@@ -128,6 +130,19 @@ export function ProductForm({ initial, onSubmit, onCancel, isLoading }: ProductF
             placeholder="0.00"
           />
         </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1">Tipo IVA</label>
+        <select
+          value={form.vatRate}
+          onChange={handleChange('vatRate')}
+          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent bg-white"
+        >
+          <option value="4">4% (básicos)</option>
+          <option value="10">10% (restauración)</option>
+          <option value="21">21% (bebidas alcohólicas)</option>
+        </select>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

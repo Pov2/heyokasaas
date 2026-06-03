@@ -67,7 +67,7 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
   }
 
   const body = await request.json()
-  const { name, description, price, cost, stock, unit, active, categoryId, supplierId } = body
+  const { name, description, price, cost, stock, unit, active, categoryId, supplierId, vatRate } = body
 
   if (name !== undefined && (typeof name !== 'string' || name.trim() === '')) {
     return NextResponse.json({ error: 'El nombre es obligatorio' }, { status: 400 })
@@ -85,6 +85,7 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
       ...(active !== undefined ? { active: Boolean(active) } : {}),
       ...(categoryId !== undefined ? { categoryId: categoryId || null } : {}),
       ...(supplierId !== undefined ? { supplierId: supplierId || null } : {}),
+      ...(vatRate !== undefined ? { vatRate: Number(vatRate) } : {}),
     },
     include: {
       category: { select: { id: true, name: true } },

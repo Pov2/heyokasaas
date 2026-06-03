@@ -22,26 +22,48 @@ enum UserRole {
   STAFF
 }
 
+enum CashSessionStatus {
+  OPEN
+  CLOSED
+}
+
+enum CashMovementType {
+  SALE
+  REFUND
+  IN
+  OUT
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  BIZUM
+  OTHER
+}
+
 model Business {
-  id           String        @id @default(cuid())
-  name         String
-  type         BusinessType
-  slug         String        @unique
-  logo         String?
-  phone        String?
-  address      String?
-  city         String?
-  email        String?
-  active       Boolean       @default(true)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  users        User[]
-  customers    Customer[]
-  suppliers    Supplier[]
-  products     Product[]
-  orders       Order[]
-  employees    Employee[]
-  reservations Reservation[]
+  id               String            @id @default(cuid())
+  name             String
+  type             BusinessType
+  slug             String            @unique
+  logo             String?
+  phone            String?
+  address          String?
+  city             String?
+  email            String?
+  active           Boolean           @default(true)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  users            User[]
+  customers        Customer[]
+  suppliers        Supplier[]
+  products         Product[]
+  orders           Order[]
+  employees        Employee[]
+  reservations     Reservation[]
+  tables           RestaurantTable[]
+  cashSessions     CashSession[]
+  invoiceSequences InvoiceSequence[]
 }
 
 model User {
@@ -128,6 +150,7 @@ model Product {
   stock       Int         @default(0)
   unit        String      @default("ud")
   active      Boolean     @default(true)
+  vatRate     Float       @default(10)
   categoryId  String?
   category    Category?   @relation(fields: [categoryId], references: [id])
   supplierId  String?
@@ -149,18 +172,21 @@ enum OrderStatus {
 }
 
 model Order {
-  id         String      @id @default(cuid())
-  number     Int
-  status     OrderStatus @default(PENDING)
-  total      Float
-  notes      String?
-  customerId String?
-  customer   Customer?   @relation(fields: [customerId], references: [id])
-  businessId String
-  business   Business    @relation(fields: [businessId], references: [id])
-  items      OrderItem[]
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  id            String           @id @default(cuid())
+  number        Int
+  status        OrderStatus      @default(PENDING)
+  total         Float
+  notes         String?
+  customerId    String?
+  customer      Customer?        @relation(fields: [customerId], references: [id])
+  businessId    String
+  business      Business         @relation(fields: [businessId], references: [id])
+  tableId       String?
+  table         RestaurantTable? @relation(fields: [tableId], references: [id])
+  items         OrderItem[]
+  cashMovements CashMovement[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 }
 
 model OrderItem {
@@ -199,4 +225,57 @@ model Reservation {
   business   Business @relation(fields: [businessId], references: [id])
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+}
+
+model RestaurantTable {
+  id         String   @id @default(cuid())
+  number     Int
+  name       String?
+  capacity   Int      @default(4)
+  posX       Float    @default(0)
+  posY       Float    @default(0)
+  active     Boolean  @default(true)
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  orders     Order[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model CashSession {
+  id             String            @id @default(cuid())
+  openedAt       DateTime          @default(now())
+  closedAt       DateTime?
+  openingBalance Float             @default(0)
+  closingBalance Float?
+  status         CashSessionStatus @default(OPEN)
+  notes          String?
+  businessId     String
+  business       Business          @relation(fields: [businessId], references: [id])
+  movements      CashMovement[]
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+}
+
+model CashMovement {
+  id            String           @id @default(cuid())
+  type          CashMovementType
+  amount        Float
+  paymentMethod PaymentMethod    @default(CASH)
+  description   String?
+  orderId       String?
+  order         Order?           @relation(fields: [orderId], references: [id])
+  sessionId     String
+  session       CashSession      @relation(fields: [sessionId], references: [id])
+  createdAt     DateTime         @default(now())
+}
+
+model InvoiceSequence {
+  id         String   @id @default(cuid())
+  year       Int
+  lastNumber Int      @default(0)
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+
+  @@unique([businessId, year])
 }

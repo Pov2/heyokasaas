@@ -83,7 +83,9 @@ export default function ProductDetailClient({ product: initial }: { product: Pro
                 {product.active ? 'Activo' : 'Inactivo'}
               </Badge>
             } />
-            <InfoRow label="Precio venta" value={`${product.price.toFixed(2)} €`} />
+            <InfoRow label="Precio venta" value={
+              <span>{product.price.toFixed(2)} € <span className="text-xs text-slate-400 font-normal">(IVA {product.vatRate}%)</span></span>
+            } />
             <InfoRow label="Coste" value={product.cost != null ? `${product.cost.toFixed(2)} €` : '—'} />
             {margin && (
               <InfoRow

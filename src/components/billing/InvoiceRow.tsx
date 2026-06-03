@@ -24,21 +24,18 @@ export function InvoiceRow({ order }: InvoiceRowProps) {
       <td className="px-4 py-3 text-sm font-bold text-green-700 text-right">{order.total.toFixed(2)} €</td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-2 justify-end">
-          <Link href={`/pedidos/${order.id}`}>
+          <Link href={`/facturacion/${order.id}`}>
             <Button size="sm" variant="outline" className="gap-1.5">
               <ExternalLink className="w-3.5 h-3.5" />
               Ver detalle
             </Button>
           </Link>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="gap-1.5"
-            onClick={() => alert('Impresión — Próximamente')}
-          >
-            <Printer className="w-3.5 h-3.5" />
-            Imprimir
-          </Button>
+          <Link href={`/facturacion/${order.id}?print=1`}>
+            <Button size="sm" variant="ghost" className="gap-1.5">
+              <Printer className="w-3.5 h-3.5" />
+              Imprimir
+            </Button>
+          </Link>
         </div>
       </td>
     </tr>

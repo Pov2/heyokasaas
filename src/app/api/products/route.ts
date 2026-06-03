@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { name, description, price, cost, stock, unit, active, categoryId, supplierId } = body
+  const { name, description, price, cost, stock, unit, active, categoryId, supplierId, vatRate } = body
 
   if (!name || typeof name !== 'string' || name.trim() === '') {
     return NextResponse.json({ error: 'El nombre es obligatorio' }, { status: 400 })
@@ -69,6 +69,7 @@ export async function POST(request: NextRequest) {
       stock: stock !== undefined ? Number(stock) : 0,
       unit: unit || 'ud',
       active: active !== undefined ? Boolean(active) : true,
+      vatRate: vatRate !== undefined ? Number(vatRate) : 10,
       categoryId: categoryId || null,
       supplierId: supplierId || null,
       businessId,

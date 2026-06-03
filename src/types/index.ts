@@ -35,6 +35,7 @@ export type Product = {
   stock: number
   unit: string
   active: boolean
+  vatRate: number
   categoryId?: string | null
   category?: { id: string; name: string } | null
   supplierId?: string | null
@@ -99,4 +100,49 @@ export type Reservation = {
   businessId: string
   createdAt: Date
   updatedAt: Date
+}
+
+export type CashMovement = {
+  id: string
+  type: 'SALE' | 'REFUND' | 'IN' | 'OUT'
+  amount: number
+  paymentMethod: 'CASH' | 'CARD' | 'BIZUM' | 'OTHER'
+  description?: string | null
+  orderId?: string | null
+  sessionId: string
+  createdAt: Date
+}
+
+export type CashSession = {
+  id: string
+  openedAt: Date
+  closedAt?: Date | null
+  openingBalance: number
+  closingBalance?: number | null
+  status: 'OPEN' | 'CLOSED'
+  notes?: string | null
+  businessId: string
+  movements: CashMovement[]
+  createdAt: Date
+  updatedAt: Date
+}
+
+export type RestaurantTable = {
+  id: string
+  number: number
+  name?: string | null
+  capacity: number
+  posX: number
+  posY: number
+  active: boolean
+  businessId: string
+  createdAt: Date
+  updatedAt: Date
+  currentOrder?: {
+    id: string
+    number: number
+    status: string
+    total: number
+    createdAt: Date
+  } | null
 }
