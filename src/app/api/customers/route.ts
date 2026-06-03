@@ -14,27 +14,37 @@ export async function GET(request: NextRequest) {
   }
 
   const search = request.nextUrl.searchParams.get('search') ?? ''
+  const page = Math.max(1, parseInt(request.nextUrl.searchParams.get('page') ?? '1', 10))
+  const limit = Math.min(100, Math.max(1, parseInt(request.nextUrl.searchParams.get('limit') ?? '20', 10)))
 
-  const customers = await prisma.customer.findMany({
-    where: {
-      businessId,
-      ...(search
-        ? {
-            OR: [
-              { name: { contains: search, mode: 'insensitive' } },
-              { email: { contains: search, mode: 'insensitive' } },
-              { phone: { contains: search, mode: 'insensitive' } },
-            ],
-          }
-        : {}),
-    },
-    include: {
-      _count: { select: { orders: true } },
-    },
-    orderBy: { createdAt: 'desc' },
+  const where = {
+    businessId,
+    ...(search
+      ? {
+          OR: [
+            { name: { contains: search, mode: 'insensitive' as const } },
+            { email: { contains: search, mode: 'insensitive' as const } },
+            { phone: { contains: search, mode: 'insensitive' as const } },
+          ],
+        }
+      : {}),
+  }
+
+  const [customers, total] = await Promise.all([
+    prisma.customer.findMany({
+      where,
+      include: { _count: { select: { orders: true } } },
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.customer.count({ where }),
+  ])
+
+  return NextResponse.json({
+    data: customers,
+    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
   })
-
-  return NextResponse.json(customers)
 }
 
 export async function POST(request: NextRequest) {

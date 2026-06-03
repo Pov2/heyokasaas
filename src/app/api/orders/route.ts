@@ -16,6 +16,8 @@ export async function GET(request: NextRequest) {
   const search = request.nextUrl.searchParams.get('search') ?? ''
   const status = request.nextUrl.searchParams.get('status') ?? ''
   const date = request.nextUrl.searchParams.get('date') ?? ''
+  const page = Math.max(1, parseInt(request.nextUrl.searchParams.get('page') ?? '1', 10))
+  const limit = Math.min(100, Math.max(1, parseInt(request.nextUrl.searchParams.get('limit') ?? '20', 10)))
 
   const now = new Date()
   let dateFilter: { gte?: Date; lte?: Date } | undefined
@@ -29,32 +31,42 @@ export async function GET(request: NextRequest) {
     dateFilter = { gte: start }
   }
 
-  const orders = await prisma.order.findMany({
-    where: {
-      businessId,
-      ...(status ? { status: status as never } : {}),
-      ...(dateFilter ? { createdAt: dateFilter } : {}),
-      ...(search
-        ? {
-            OR: [
-              { customer: { name: { contains: search, mode: 'insensitive' } } },
-              ...(isNaN(Number(search)) ? [] : [{ number: Number(search) }]),
-            ],
-          }
-        : {}),
-    },
-    include: {
-      customer: { select: { id: true, name: true } },
-      items: {
-        include: {
-          product: { select: { id: true, name: true, unit: true } },
+  const where = {
+    businessId,
+    ...(status ? { status: status as never } : {}),
+    ...(dateFilter ? { createdAt: dateFilter } : {}),
+    ...(search
+      ? {
+          OR: [
+            { customer: { name: { contains: search, mode: 'insensitive' as const } } },
+            ...(isNaN(Number(search)) ? [] : [{ number: Number(search) }]),
+          ],
+        }
+      : {}),
+  }
+
+  const [orders, total] = await Promise.all([
+    prisma.order.findMany({
+      where,
+      include: {
+        customer: { select: { id: true, name: true } },
+        items: {
+          include: {
+            product: { select: { id: true, name: true, unit: true } },
+          },
         },
       },
-    },
-    orderBy: { createdAt: 'desc' },
-  })
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.order.count({ where }),
+  ])
 
-  return NextResponse.json(orders)
+  return NextResponse.json({
+    data: orders,
+    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  })
 }
 
 export async function POST(request: NextRequest) {

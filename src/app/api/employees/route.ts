@@ -1,53 +1,53 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { requireRole } from '@/lib/withRole'
 
 export async function GET(request: NextRequest) {
-  const session = await auth()
-  if (!session?.user) {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
+  const result = await requireRole('empleados')
+  if ('error' in result) return result.error
 
-  const businessId = (session.user as { businessId?: string }).businessId
-  if (!businessId) {
-    return NextResponse.json({ error: 'Sin negocio asociado' }, { status: 403 })
-  }
+  const { businessId } = result
 
   const search = request.nextUrl.searchParams.get('search') ?? ''
   const activeParam = request.nextUrl.searchParams.get('active')
+  const page = Math.max(1, parseInt(request.nextUrl.searchParams.get('page') ?? '1', 10))
+  const limit = Math.min(100, Math.max(1, parseInt(request.nextUrl.searchParams.get('limit') ?? '20', 10)))
 
-  const employees = await prisma.employee.findMany({
-    where: {
-      businessId,
-      ...(activeParam !== null && activeParam !== ''
-        ? { active: activeParam === 'true' }
-        : {}),
-      ...(search
-        ? {
-            OR: [
-              { name: { contains: search, mode: 'insensitive' } },
-              { email: { contains: search, mode: 'insensitive' } },
-              { position: { contains: search, mode: 'insensitive' } },
-            ],
-          }
-        : {}),
-    },
-    orderBy: { createdAt: 'desc' },
+  const where = {
+    businessId,
+    ...(activeParam !== null && activeParam !== '' ? { active: activeParam === 'true' } : {}),
+    ...(search
+      ? {
+          OR: [
+            { name: { contains: search, mode: 'insensitive' as const } },
+            { email: { contains: search, mode: 'insensitive' as const } },
+            { position: { contains: search, mode: 'insensitive' as const } },
+          ],
+        }
+      : {}),
+  }
+
+  const [employees, total] = await Promise.all([
+    prisma.employee.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.employee.count({ where }),
+  ])
+
+  return NextResponse.json({
+    data: employees,
+    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
   })
-
-  return NextResponse.json(employees)
 }
 
 export async function POST(request: NextRequest) {
-  const session = await auth()
-  if (!session?.user) {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
+  const result = await requireRole('empleados')
+  if ('error' in result) return result.error
 
-  const businessId = (session.user as { businessId?: string }).businessId
-  if (!businessId) {
-    return NextResponse.json({ error: 'Sin negocio asociado' }, { status: 403 })
-  }
+  const { businessId } = result
 
   const body = await request.json()
   const { name, email, phone, position, salary, active } = body
