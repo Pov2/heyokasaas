@@ -74,3 +74,16 @@ export type Order = {
   createdAt: Date
   updatedAt: Date
 }
+
+export type Employee = {
+  id: string
+  name: string
+  email?: string | null
+  phone?: string | null
+  position?: string | null
+  salary?: number | null
+  active: boolean
+  businessId: string
+  createdAt: Date
+  updatedAt: Date
+}
