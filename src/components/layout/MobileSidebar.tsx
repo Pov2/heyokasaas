@@ -1,7 +1,10 @@
-import { auth, signOut } from '@/lib/auth'
-import { redirect } from 'next/navigation'
+'use client'
+
+import { useState } from 'react'
 import Link from 'next/link'
 import {
+  Menu,
+  X,
   LayoutDashboard,
   Users,
   Truck,
@@ -13,7 +16,6 @@ import {
   Receipt,
   LogOut,
 } from 'lucide-react'
-import { MobileSidebar } from '@/components/layout/MobileSidebar'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -27,60 +29,70 @@ const navItems = [
   { href: '/dashboard/facturacion', label: 'Facturación', icon: Receipt },
 ]
 
-export default async function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  const session = await auth()
+interface MobileSidebarProps {
+  businessName: string
+  businessType: string
+  userName: string
+  userEmail: string
+  initials: string
+  signOutAction: () => Promise<void>
+}
 
-  if (!session?.user) {
-    redirect('/login')
-  }
-
-  const user = session.user as any
-  const isRestaurante = user.businessType === 'RESTAURANTE'
-  const initials = user.name
-    ? user.name
-        .split(' ')
-        .map((n: string) => n[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2)
-    : user.email?.[0]?.toUpperCase() ?? 'U'
-
-  const signOutAction = async () => {
-    'use server'
-    await signOut({ redirectTo: '/login' })
-  }
+export function MobileSidebar({ businessName, businessType, userName, userEmail, initials, signOutAction }: MobileSidebarProps) {
+  const [open, setOpen] = useState(false)
+  const isRestaurante = businessType === 'RESTAURANTE'
 
   return (
-    <div className="min-h-screen flex bg-slate-50">
-      {/* Mobile sidebar */}
-      <MobileSidebar
-        businessName={user.businessName ?? 'Mi negocio'}
-        businessType={user.businessType ?? ''}
-        userName={user.name ?? 'Usuario'}
-        userEmail={user.email ?? ''}
-        initials={initials}
-        signOutAction={signOutAction}
-      />
+    <>
+      {/* Top bar - mobile only */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-slate-900 flex items-center justify-between px-4 py-3 border-b border-slate-800">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center shrink-0">
+            <span className="text-white font-bold text-sm">H</span>
+          </div>
+          <span className="text-white font-bold text-lg">HeyOka</span>
+        </div>
+        <button
+          onClick={() => setOpen(true)}
+          className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          aria-label="Abrir menú"
+        >
+          <Menu size={22} />
+        </button>
+      </div>
 
-      {/* Desktop Sidebar */}
-      <aside className="hidden md:flex w-64 bg-slate-900 flex-col shrink-0 min-h-screen">
-        {/* Logo */}
-        <div className="px-6 py-6 border-b border-slate-800">
+      {/* Overlay */}
+      {open && (
+        <div
+          className="md:hidden fixed inset-0 z-40 bg-black/50"
+          onClick={() => setOpen(false)}
+        />
+      )}
+
+      {/* Drawer */}
+      <aside
+        className={`md:hidden fixed top-0 left-0 bottom-0 z-50 w-72 bg-slate-900 flex flex-col transform transition-transform duration-300 ${
+          open ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        {/* Header */}
+        <div className="px-6 py-5 border-b border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-amber-500 flex items-center justify-center shrink-0">
               <span className="text-white font-bold text-base">H</span>
             </div>
             <div>
               <p className="text-white font-bold text-lg leading-none">HeyOka</p>
-              <p className="text-slate-400 text-xs mt-0.5 truncate max-w-[140px]">
-                {user.businessName ?? 'Mi negocio'}
-              </p>
+              <p className="text-slate-400 text-xs mt-0.5 truncate max-w-[140px]">{businessName}</p>
             </div>
           </div>
+          <button
+            onClick={() => setOpen(false)}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            aria-label="Cerrar menú"
+          >
+            <X size={20} />
+          </button>
         </div>
 
         {/* Nav */}
@@ -92,7 +104,8 @@ export default async function DashboardLayout({
               <Link
                 key={item.href}
                 href={item.href}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors group"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
               >
                 <Icon size={18} className="shrink-0" />
                 <span className="text-sm font-medium">{item.label}</span>
@@ -108,16 +121,11 @@ export default async function DashboardLayout({
               <span className="text-white text-xs font-bold">{initials}</span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-white text-sm font-medium truncate">{user.name ?? 'Usuario'}</p>
-              <p className="text-slate-500 text-xs truncate">{user.email}</p>
+              <p className="text-white text-sm font-medium truncate">{userName}</p>
+              <p className="text-slate-500 text-xs truncate">{userEmail}</p>
             </div>
           </div>
-          <form
-            action={async () => {
-              'use server'
-              await signOut({ redirectTo: '/login' })
-            }}
-          >
+          <form action={signOutAction}>
             <button
               type="submit"
               className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors text-sm"
@@ -128,11 +136,6 @@ export default async function DashboardLayout({
           </form>
         </div>
       </aside>
-
-      {/* Main content */}
-      <main className="flex-1 overflow-auto pt-14 md:pt-0">
-        {children}
-      </main>
-    </div>
+    </>
   )
 }
