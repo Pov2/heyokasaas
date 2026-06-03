@@ -36,12 +36,23 @@ export async function GET(request: NextRequest) {
     where.confirmed = confirmedParam === 'true'
   }
 
-  const reservations = await prisma.reservation.findMany({
-    where,
-    orderBy: { date: 'asc' },
-  })
+  const page = Math.max(1, parseInt(request.nextUrl.searchParams.get('page') ?? '1', 10))
+  const limit = Math.min(100, Math.max(1, parseInt(request.nextUrl.searchParams.get('limit') ?? '20', 10)))
 
-  return NextResponse.json(reservations)
+  const [reservations, total] = await Promise.all([
+    prisma.reservation.findMany({
+      where,
+      orderBy: { date: 'asc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.reservation.count({ where }),
+  ])
+
+  return NextResponse.json({
+    data: reservations,
+    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  })
 }
 
 export async function POST(request: NextRequest) {

@@ -7,6 +7,7 @@ import { SupplierTable } from '@/components/suppliers/SupplierTable'
 import { SupplierModal } from '@/components/suppliers/SupplierModal'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { Pagination } from '@/components/ui/Pagination'
 import type { Supplier } from '@/types'
 
 const CATEGORIES = [
@@ -27,20 +28,25 @@ export default function ProveedoresContent() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState(searchParams.get('search') ?? '')
   const [category, setCategory] = useState(searchParams.get('category') ?? '')
+  const [page, setPage] = useState(1)
+  const [pagination, setPagination] = useState({ total: 0, totalPages: 1 })
   const [modalOpen, setModalOpen] = useState(false)
   const [editSupplier, setEditSupplier] = useState<Supplier | null>(null)
 
-  const fetchSuppliers = useCallback(async (q: string, cat: string) => {
+  const fetchSuppliers = useCallback(async (q: string, cat: string, p: number) => {
     setLoading(true)
     try {
       const params = new URLSearchParams()
       if (q) params.set('search', q)
       if (cat) params.set('category', cat)
-      const url = `/api/suppliers${params.toString() ? `?${params.toString()}` : ''}`
+      params.set('page', String(p))
+      params.set('limit', '20')
+      const url = `/api/suppliers?${params.toString()}`
       const res = await fetch(url)
       if (res.ok) {
-        const data = await res.json()
-        setSuppliers(data)
+        const json = await res.json()
+        setSuppliers(json.data)
+        setPagination({ total: json.pagination.total, totalPages: json.pagination.totalPages })
       }
     } finally {
       setLoading(false)
@@ -49,14 +55,19 @@ export default function ProveedoresContent() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchSuppliers(search, category)
+      fetchSuppliers(search, category, page)
       const params = new URLSearchParams()
       if (search) params.set('search', search)
       if (category) params.set('category', category)
       router.replace(`/proveedores${params.toString() ? `?${params.toString()}` : ''}`, { scroll: false })
     }, 300)
     return () => clearTimeout(timer)
-  }, [search, category, fetchSuppliers, router])
+  }, [search, category, page, fetchSuppliers, router])
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1)
+  }, [search, category])
 
   const handleSuccess = (supplier: Supplier) => {
     setSuppliers((prev) => {
@@ -84,7 +95,7 @@ export default function ProveedoresContent() {
           <p className="text-slate-500 text-sm mt-1">
             {loading
               ? 'Cargando...'
-              : `${suppliers.length} proveedor${suppliers.length !== 1 ? 'es' : ''} registrado${suppliers.length !== 1 ? 's' : ''}`}
+              : `${pagination.total} proveedor${pagination.total !== 1 ? 'es' : ''} registrado${pagination.total !== 1 ? 's' : ''}`}
           </p>
         </div>
         <Button
@@ -159,7 +170,10 @@ export default function ProveedoresContent() {
             </Button>
           </div>
         ) : (
-          <SupplierTable suppliers={suppliers} onEdit={handleEdit} onDeleted={handleDeleted} />
+          <>
+            <SupplierTable suppliers={suppliers} onEdit={handleEdit} onDeleted={handleDeleted} />
+            <Pagination page={page} totalPages={pagination.totalPages} onPageChange={setPage} />
+          </>
         )}
       </div>
 

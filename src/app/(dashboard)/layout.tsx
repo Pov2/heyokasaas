@@ -16,19 +16,20 @@ import {
   LogOut,
 } from 'lucide-react'
 import { MobileSidebar } from '@/components/layout/MobileSidebar'
+import { canAccess, type UserRole } from '@/lib/permissions'
 
 const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/dashboard/clientes', label: 'Clientes', icon: Users },
-  { href: '/dashboard/proveedores', label: 'Proveedores', icon: Truck },
-  { href: '/dashboard/productos', label: 'Carta / Productos', icon: UtensilsCrossed },
-  { href: '/dashboard/pedidos', label: 'Pedidos', icon: ClipboardList },
-  { href: '/caja', label: 'Caja / TPV', icon: Landmark },
-  { href: '/dashboard/stock', label: 'Stock', icon: Package },
-  { href: '/dashboard/empleados', label: 'Empleados', icon: UserCheck },
-  { href: '/dashboard/reservas', label: 'Reservas', icon: CalendarDays, restauranteOnly: true },
-  { href: '/dashboard/mesas', label: 'Mesas', icon: LayoutGrid, restauranteOnly: true },
-  { href: '/dashboard/facturacion', label: 'Facturación', icon: Receipt },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, module: 'dashboard' },
+  { href: '/dashboard/clientes', label: 'Clientes', icon: Users, module: 'clientes' },
+  { href: '/dashboard/proveedores', label: 'Proveedores', icon: Truck, module: 'proveedores' },
+  { href: '/dashboard/productos', label: 'Carta / Productos', icon: UtensilsCrossed, module: 'carta' },
+  { href: '/dashboard/pedidos', label: 'Pedidos', icon: ClipboardList, module: 'pedidos' },
+  { href: '/caja', label: 'Caja / TPV', icon: Landmark, module: 'caja' },
+  { href: '/dashboard/stock', label: 'Stock', icon: Package, module: 'stock' },
+  { href: '/dashboard/empleados', label: 'Empleados', icon: UserCheck, module: 'empleados' },
+  { href: '/dashboard/reservas', label: 'Reservas', icon: CalendarDays, module: 'reservas', restauranteOnly: true },
+  { href: '/dashboard/mesas', label: 'Mesas', icon: LayoutGrid, module: 'mesas', restauranteOnly: true },
+  { href: '/dashboard/facturacion', label: 'Facturación', icon: Receipt, module: 'facturacion' },
 ]
 
 export default async function DashboardLayout({
@@ -44,6 +45,7 @@ export default async function DashboardLayout({
 
   const user = session.user as any
   const isRestaurante = user.businessType === 'RESTAURANTE'
+  const userRole = (user.role ?? 'STAFF') as UserRole
   const initials = user.name
     ? user.name
         .split(' ')
@@ -91,6 +93,7 @@ export default async function DashboardLayout({
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
           {navItems.map((item) => {
             if (item.restauranteOnly && !isRestaurante) return null
+            if (!canAccess(userRole, item.module)) return null
             const Icon = item.icon
             return (
               <Link

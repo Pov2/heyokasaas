@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { Package, Search, Download, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { Pagination } from '@/components/ui/Pagination'
 import { StockTable } from '@/components/stock/StockTable'
 import type { Product, Category } from '@/types'
 
@@ -18,6 +19,8 @@ export default function StockContent() {
   const [search, setSearch] = useState(searchParams.get('search') ?? '')
   const [categoryFilter, setCategoryFilter] = useState(searchParams.get('category') ?? '')
   const [onlyProblems, setOnlyProblems] = useState(searchParams.get('problems') === 'true')
+  const [page, setPage] = useState(1)
+  const [pagination, setPagination] = useState({ total: 0, totalPages: 1 })
 
   const fetchProducts = useCallback(async () => {
     setLoading(true)
@@ -25,10 +28,16 @@ export default function StockContent() {
     if (search) params.set('search', search)
     if (categoryFilter) params.set('category', categoryFilter)
     if (onlyProblems) params.set('low', 'true')
+    params.set('page', String(page))
+    params.set('limit', '20')
     const res = await fetch(`/api/stock?${params.toString()}`)
-    if (res.ok) setProducts(await res.json())
+    if (res.ok) {
+      const json = await res.json()
+      setProducts(json.data)
+      setPagination({ total: json.pagination.total, totalPages: json.pagination.totalPages })
+    }
     setLoading(false)
-  }, [search, categoryFilter, onlyProblems])
+  }, [search, categoryFilter, onlyProblems, page])
 
   useEffect(() => {
     fetch('/api/categories').then(r => r.json()).then(setCategories).catch(() => {})
@@ -46,6 +55,9 @@ export default function StockContent() {
     if (onlyProblems) params.set('problems', 'true')
     router.replace(`/stock?${params.toString()}`)
   }, [search, categoryFilter, onlyProblems, router])
+
+  // Reset page when filters change
+  useEffect(() => { setPage(1) }, [search, categoryFilter, onlyProblems])
 
   const sinStock = products.filter(p => p.stock === 0).length
   const critico = products.filter(p => p.stock >= 1 && p.stock <= 5).length
@@ -79,7 +91,7 @@ export default function StockContent() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl shadow-sm p-4 border border-slate-100">
           <p className="text-xs text-slate-500">Total productos</p>
-          <p className="text-xl font-bold text-slate-900 mt-1">{products.length}</p>
+          <p className="text-xl font-bold text-slate-900 mt-1">{pagination.total}</p>
         </div>
         <div className="bg-white rounded-xl shadow-sm p-4 border border-red-100">
           <p className="text-xs text-slate-500">Sin stock</p>
@@ -136,12 +148,15 @@ export default function StockContent() {
           <p className="text-slate-400 text-sm">Añade productos desde la sección Carta</p>
         </div>
       ) : (
-        <StockTable
-          products={products}
-          onStockUpdated={updated =>
-            setProducts(prev => prev.map(p => p.id === updated.id ? updated : p))
-          }
-        />
+        <>
+          <StockTable
+            products={products}
+            onStockUpdated={updated =>
+              setProducts(prev => prev.map(p => p.id === updated.id ? updated : p))
+            }
+          />
+          <Pagination page={page} totalPages={pagination.totalPages} onPageChange={setPage} />
+        </>
       )}
     </div>
   )

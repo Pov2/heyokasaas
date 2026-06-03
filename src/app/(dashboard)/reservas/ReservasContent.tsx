@@ -49,8 +49,9 @@ export default function ReservasContent() {
       if (confirmedFilter) params.set('confirmed', confirmedFilter)
       const res = await fetch(`/api/reservations?${params.toString()}`)
       if (res.ok) {
-        const data = await res.json()
-        setReservations(data)
+        const json = await res.json()
+        // Support both paginated { data: [...] } and plain array responses
+        setReservations(Array.isArray(json) ? json : json.data)
       }
     } finally {
       setLoading(false)

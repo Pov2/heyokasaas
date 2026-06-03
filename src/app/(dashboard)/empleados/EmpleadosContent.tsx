@@ -7,6 +7,7 @@ import { EmployeeTable } from '@/components/employees/EmployeeTable'
 import { EmployeeModal } from '@/components/employees/EmployeeModal'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { Pagination } from '@/components/ui/Pagination'
 import type { Employee } from '@/types'
 
 export default function EmpleadosContent() {
@@ -19,18 +20,30 @@ export default function EmpleadosContent() {
   const [positionFilter, setPositionFilter] = useState<string>('')
   const [modalOpen, setModalOpen] = useState(false)
   const [editEmployee, setEditEmployee] = useState<Employee | null>(null)
+  const [page, setPage] = useState(1)
+  const [pagination, setPagination] = useState({ total: 0, totalPages: 1 })
+  const [userRole, setUserRole] = useState<string>('')
 
-  const fetchEmployees = useCallback(async (q: string, active: string) => {
+  useEffect(() => {
+    fetch('/api/me').then(r => r.json()).then(data => setUserRole(data.role ?? '')).catch(() => {})
+  }, [])
+
+  const showSalary = userRole === 'OWNER' || userRole === 'ADMIN'
+
+  const fetchEmployees = useCallback(async (q: string, active: string, p: number) => {
     setLoading(true)
     try {
       const params = new URLSearchParams()
       if (q) params.set('search', q)
       if (active) params.set('active', active)
-      const url = `/api/employees${params.toString() ? `?${params.toString()}` : ''}`
+      params.set('page', String(p))
+      params.set('limit', '20')
+      const url = `/api/employees?${params.toString()}`
       const res = await fetch(url)
       if (res.ok) {
-        const data = await res.json()
-        setEmployees(data)
+        const json = await res.json()
+        setEmployees(json.data)
+        setPagination({ total: json.pagination.total, totalPages: json.pagination.totalPages })
       }
     } finally {
       setLoading(false)
@@ -39,13 +52,16 @@ export default function EmpleadosContent() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchEmployees(search, activeFilter)
+      fetchEmployees(search, activeFilter, page)
       const params = new URLSearchParams()
       if (search) params.set('search', search)
       router.replace(`/empleados${params.toString() ? `?${params.toString()}` : ''}`, { scroll: false })
     }, 300)
     return () => clearTimeout(timer)
-  }, [search, activeFilter, fetchEmployees, router])
+  }, [search, activeFilter, page, fetchEmployees, router])
+
+  // Reset page when filters change
+  useEffect(() => { setPage(1) }, [search, activeFilter])
 
   const handleSuccess = (employee: Employee) => {
     setEmployees((prev) => {
@@ -77,7 +93,7 @@ export default function EmpleadosContent() {
   }, [employees, positionFilter])
 
   // Stats
-  const totalEmpleados = employees.length
+  const totalEmpleados = pagination.total
   const totalActivos = employees.filter((e) => e.active).length
   const enNomina = employees.filter((e) => e.active && e.salary != null && e.salary > 0).length
   const costeMensual = employees
@@ -93,7 +109,7 @@ export default function EmpleadosContent() {
           <p className="text-slate-500 text-sm mt-1">
             {loading
               ? 'Cargando...'
-              : `${totalEmpleados} empleado${totalEmpleados !== 1 ? 's' : ''} registrado${totalEmpleados !== 1 ? 's' : ''}`}
+              : `${pagination.total} empleado${pagination.total !== 1 ? 's' : ''} registrado${pagination.total !== 1 ? 's' : ''}`}
           </p>
         </div>
         <Button
@@ -234,11 +250,15 @@ export default function EmpleadosContent() {
             </Button>
           </div>
         ) : (
-          <EmployeeTable
-            employees={filteredEmployees}
-            onEdit={handleEdit}
-            onDeleted={handleDeleted}
-          />
+          <>
+            <EmployeeTable
+              employees={filteredEmployees}
+              onEdit={handleEdit}
+              onDeleted={handleDeleted}
+              showSalary={showSalary}
+            />
+            <Pagination page={page} totalPages={pagination.totalPages} onPageChange={setPage} />
+          </>
         )}
       </div>
 

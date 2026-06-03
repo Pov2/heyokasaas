@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Search, Receipt, Euro, ShoppingBag, BarChart2 } from 'lucide-react'
 import { Input } from '@/components/ui/Input'
+import { Pagination } from '@/components/ui/Pagination'
 import { SummaryCard } from '@/components/billing/SummaryCard'
 import { RevenueChart } from '@/components/billing/RevenueChart'
 import { InvoiceRow } from '@/components/billing/InvoiceRow'
@@ -20,6 +21,7 @@ interface Summary {
 interface BillingResponse {
   orders: Order[]
   aggregate: { total: number; count: number; avgTicket: number }
+  pagination: { page: number; limit: number; total: number; totalPages: number }
 }
 
 function getCurrentMonth(): string {
@@ -33,6 +35,8 @@ export default function FacturacionContent() {
   const [aggregate, setAggregate] = useState({ total: 0, count: 0, avgTicket: 0 })
   const [month, setMonth] = useState(getCurrentMonth())
   const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+  const [paginationMeta, setPaginationMeta] = useState({ totalPages: 1 })
   const [loadingSummary, setLoadingSummary] = useState(true)
   const [loadingInvoices, setLoadingInvoices] = useState(true)
 
@@ -48,19 +52,25 @@ export default function FacturacionContent() {
     setLoadingInvoices(true)
     const params = new URLSearchParams({ month })
     if (search) params.set('search', search)
+    params.set('page', String(page))
+    params.set('limit', '20')
     const res = await fetch(`/api/billing?${params.toString()}`)
     if (res.ok) {
       const data: BillingResponse = await res.json()
       setInvoices(data.orders)
       setAggregate(data.aggregate)
+      setPaginationMeta({ totalPages: data.pagination.totalPages })
     }
     setLoadingInvoices(false)
-  }, [month, search])
+  }, [month, search, page])
 
   useEffect(() => {
     const timer = setTimeout(fetchInvoices, 300)
     return () => clearTimeout(timer)
   }, [fetchInvoices])
+
+  // Reset page when filters change
+  useEffect(() => { setPage(1) }, [month, search])
 
   const trendPct =
     summary && summary.previousRevenue > 0
@@ -234,6 +244,7 @@ export default function FacturacionContent() {
                 </tr>
               </tfoot>
             </table>
+            <Pagination page={page} totalPages={paginationMeta.totalPages} onPageChange={setPage} />
           </div>
         )}
       </div>

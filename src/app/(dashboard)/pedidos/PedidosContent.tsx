@@ -5,9 +5,10 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { ClipboardList, Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { Pagination } from '@/components/ui/Pagination'
 import { OrderTable } from '@/components/orders/OrderTable'
 import { OrderModal } from '@/components/orders/OrderModal'
-import type { Order, OrderStatus } from '@/types'
+import type { Order } from '@/types'
 
 const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: '', label: 'Todos los estados' },
@@ -29,6 +30,8 @@ export default function PedidosContent() {
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') ?? '')
   const [dateFilter, setDateFilter] = useState(searchParams.get('date') ?? 'today')
   const [showModal, setShowModal] = useState(false)
+  const [page, setPage] = useState(1)
+  const [pagination, setPagination] = useState({ total: 0, totalPages: 1 })
 
   const fetchOrders = useCallback(async () => {
     setLoading(true)
@@ -36,10 +39,16 @@ export default function PedidosContent() {
     if (search) params.set('search', search)
     if (statusFilter) params.set('status', statusFilter)
     if (dateFilter) params.set('date', dateFilter)
+    params.set('page', String(page))
+    params.set('limit', '20')
     const res = await fetch(`/api/orders?${params.toString()}`)
-    if (res.ok) setOrders(await res.json())
+    if (res.ok) {
+      const json = await res.json()
+      setOrders(json.data)
+      setPagination({ total: json.pagination.total, totalPages: json.pagination.totalPages })
+    }
     setLoading(false)
-  }, [search, statusFilter, dateFilter])
+  }, [search, statusFilter, dateFilter, page])
 
   useEffect(() => {
     const timer = setTimeout(fetchOrders, 300)
@@ -53,6 +62,9 @@ export default function PedidosContent() {
     if (dateFilter) params.set('date', dateFilter)
     router.replace(`/pedidos?${params.toString()}`)
   }, [search, statusFilter, dateFilter, router])
+
+  // Reset page when filters change
+  useEffect(() => { setPage(1) }, [search, statusFilter, dateFilter])
 
   const now = new Date()
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -133,13 +145,16 @@ export default function PedidosContent() {
         </div>
       ) : (
         <div className="bg-white rounded-xl shadow-sm border border-slate-100">
-          <OrderTable
-            orders={orders}
-            onStatusChange={(id, status) =>
-              setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o))
-            }
-            onDeleted={id => setOrders(prev => prev.filter(o => o.id !== id))}
-          />
+          <>
+            <OrderTable
+              orders={orders}
+              onStatusChange={(id, status) =>
+                setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o))
+              }
+              onDeleted={id => setOrders(prev => prev.filter(o => o.id !== id))}
+            />
+            <Pagination page={page} totalPages={pagination.totalPages} onPageChange={setPage} />
+          </>
         </div>
       )}
 

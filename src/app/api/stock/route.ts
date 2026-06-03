@@ -16,22 +16,32 @@ export async function GET(request: NextRequest) {
   const search = request.nextUrl.searchParams.get('search') ?? ''
   const categoryId = request.nextUrl.searchParams.get('category') ?? ''
   const low = request.nextUrl.searchParams.get('low') === 'true'
+  const page = Math.max(1, parseInt(request.nextUrl.searchParams.get('page') ?? '1', 10))
+  const limit = Math.min(100, Math.max(1, parseInt(request.nextUrl.searchParams.get('limit') ?? '20', 10)))
 
-  const products = await prisma.product.findMany({
-    where: {
-      businessId,
-      ...(categoryId ? { categoryId } : {}),
-      ...(low ? { stock: { lte: 10 } } : {}),
-      ...(search
-        ? { name: { contains: search, mode: 'insensitive' } }
-        : {}),
-    },
-    include: {
-      category: { select: { id: true, name: true } },
-      supplier: { select: { id: true, name: true } },
-    },
-    orderBy: { stock: 'asc' },
+  const where = {
+    businessId,
+    ...(categoryId ? { categoryId } : {}),
+    ...(low ? { stock: { lte: 10 } } : {}),
+    ...(search ? { name: { contains: search, mode: 'insensitive' as const } } : {}),
+  }
+
+  const [products, total] = await Promise.all([
+    prisma.product.findMany({
+      where,
+      include: {
+        category: { select: { id: true, name: true } },
+        supplier: { select: { id: true, name: true } },
+      },
+      orderBy: { stock: 'asc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.product.count({ where }),
+  ])
+
+  return NextResponse.json({
+    data: products,
+    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
   })
-
-  return NextResponse.json(products)
 }

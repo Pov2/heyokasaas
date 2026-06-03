@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { UtensilsCrossed, Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { Pagination } from '@/components/ui/Pagination'
 import { ProductTable } from '@/components/products/ProductTable'
 import { ProductModal } from '@/components/products/ProductModal'
 import type { Product, Category } from '@/types'
@@ -21,6 +22,8 @@ export default function CartaContent() {
   const [activeFilter, setActiveFilter] = useState(searchParams.get('active') ?? '')
   const [showModal, setShowModal] = useState(false)
   const [editProduct, setEditProduct] = useState<Product | null>(null)
+  const [page, setPage] = useState(1)
+  const [pagination, setPagination] = useState({ total: 0, totalPages: 1 })
 
   const fetchProducts = useCallback(async () => {
     setLoading(true)
@@ -28,10 +31,16 @@ export default function CartaContent() {
     if (search) params.set('search', search)
     if (categoryFilter) params.set('category', categoryFilter)
     if (activeFilter) params.set('active', activeFilter)
+    params.set('page', String(page))
+    params.set('limit', '20')
     const res = await fetch(`/api/products?${params.toString()}`)
-    if (res.ok) setProducts(await res.json())
+    if (res.ok) {
+      const json = await res.json()
+      setProducts(json.data)
+      setPagination({ total: json.pagination.total, totalPages: json.pagination.totalPages })
+    }
     setLoading(false)
-  }, [search, categoryFilter, activeFilter])
+  }, [search, categoryFilter, activeFilter, page])
 
   useEffect(() => {
     fetch('/api/categories').then(r => r.json()).then(setCategories).catch(() => {})
@@ -49,6 +58,9 @@ export default function CartaContent() {
     if (activeFilter) params.set('active', activeFilter)
     router.replace(`/carta?${params.toString()}`)
   }, [search, categoryFilter, activeFilter, router])
+
+  // Reset page on filter changes
+  useEffect(() => { setPage(1) }, [search, categoryFilter, activeFilter])
 
   const activeProducts = products.filter(p => p.active)
   const totalStockValue = products.reduce((acc, p) => acc + (p.stock * (p.cost ?? 0)), 0)
@@ -75,7 +87,7 @@ export default function CartaContent() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'Total productos', value: products.length },
+          { label: 'Total productos', value: pagination.total },
           { label: 'Activos', value: activeProducts.length },
           { label: 'Valor stock', value: `${totalStockValue.toFixed(2)} €` },
           { label: 'Margen medio', value: `${avgMargin.toFixed(1)} %` },
@@ -130,11 +142,14 @@ export default function CartaContent() {
           </Button>
         </div>
       ) : (
-        <ProductTable
-          products={products}
-          onEdit={p => { setEditProduct(p); setShowModal(true) }}
-          onDeleted={id => setProducts(prev => prev.filter(p => p.id !== id))}
-        />
+        <>
+          <ProductTable
+            products={products}
+            onEdit={p => { setEditProduct(p); setShowModal(true) }}
+            onDeleted={id => setProducts(prev => prev.filter(p => p.id !== id))}
+          />
+          <Pagination page={page} totalPages={pagination.totalPages} onPageChange={setPage} />
+        </>
       )}
 
       <ProductModal

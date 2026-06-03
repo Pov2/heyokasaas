@@ -7,6 +7,7 @@ import { CustomerTable } from '@/components/customers/CustomerTable'
 import { CustomerModal } from '@/components/customers/CustomerModal'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { Pagination } from '@/components/ui/Pagination'
 import type { Customer } from '@/types'
 
 export default function ClientesContent() {
@@ -15,17 +16,23 @@ export default function ClientesContent() {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState(searchParams.get('search') ?? '')
+  const [page, setPage] = useState(1)
+  const [pagination, setPagination] = useState({ total: 0, totalPages: 1 })
   const [modalOpen, setModalOpen] = useState(false)
   const [editCustomer, setEditCustomer] = useState<Customer | null>(null)
 
-  const fetchCustomers = useCallback(async (q: string) => {
+  const fetchCustomers = useCallback(async (q: string, p: number) => {
     setLoading(true)
     try {
-      const url = q ? `/api/customers?search=${encodeURIComponent(q)}` : '/api/customers'
-      const res = await fetch(url)
+      const params = new URLSearchParams()
+      if (q) params.set('search', q)
+      params.set('page', String(p))
+      params.set('limit', '20')
+      const res = await fetch(`/api/customers?${params.toString()}`)
       if (res.ok) {
-        const data = await res.json()
-        setCustomers(data)
+        const json = await res.json()
+        setCustomers(json.data)
+        setPagination({ total: json.pagination.total, totalPages: json.pagination.totalPages })
       }
     } finally {
       setLoading(false)
@@ -34,13 +41,18 @@ export default function ClientesContent() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchCustomers(search)
+      fetchCustomers(search, page)
       const params = new URLSearchParams()
       if (search) params.set('search', search)
       router.replace(`/clientes${search ? `?${params.toString()}` : ''}`, { scroll: false })
     }, 300)
     return () => clearTimeout(timer)
-  }, [search, fetchCustomers, router])
+  }, [search, page, fetchCustomers, router])
+
+  // Reset page when search changes
+  useEffect(() => {
+    setPage(1)
+  }, [search])
 
   const handleSuccess = (customer: Customer) => {
     setCustomers((prev) => {
@@ -68,7 +80,7 @@ export default function ClientesContent() {
           <p className="text-slate-500 text-sm mt-1">
             {loading
               ? 'Cargando...'
-              : `${customers.length} cliente${customers.length !== 1 ? 's' : ''} registrado${customers.length !== 1 ? 's' : ''}`}
+              : `${pagination.total} cliente${pagination.total !== 1 ? 's' : ''} registrado${pagination.total !== 1 ? 's' : ''}`}
           </p>
         </div>
         <Button
@@ -133,7 +145,10 @@ export default function ClientesContent() {
             </Button>
           </div>
         ) : (
-          <CustomerTable customers={customers} onEdit={handleEdit} onDeleted={handleDeleted} />
+            <>
+            <CustomerTable customers={customers} onEdit={handleEdit} onDeleted={handleDeleted} />
+            <Pagination page={page} totalPages={pagination.totalPages} onPageChange={setPage} />
+          </>
         )}
       </div>
 

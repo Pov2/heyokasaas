@@ -11,6 +11,7 @@ interface EmployeeTableProps {
   employees: Employee[]
   onEdit: (employee: Employee) => void
   onDeleted: (id: string) => void
+  showSalary?: boolean
 }
 
 function formatSalary(salary: number | null | undefined): string {
@@ -21,7 +22,7 @@ function formatSalary(salary: number | null | undefined): string {
   )
 }
 
-export function EmployeeTable({ employees, onEdit, onDeleted }: EmployeeTableProps) {
+export function EmployeeTable({ employees, onEdit, onDeleted, showSalary = true }: EmployeeTableProps) {
   const router = useRouter()
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
@@ -50,7 +51,7 @@ export function EmployeeTable({ employees, onEdit, onDeleted }: EmployeeTablePro
             <th className="text-left px-6 py-3 font-semibold text-slate-600">Puesto</th>
             <th className="text-left px-6 py-3 font-semibold text-slate-600">Email</th>
             <th className="text-left px-6 py-3 font-semibold text-slate-600">Teléfono</th>
-            <th className="text-right px-6 py-3 font-semibold text-slate-600">Salario</th>
+            {showSalary && <th className="text-right px-6 py-3 font-semibold text-slate-600">Salario</th>}
             <th className="text-left px-6 py-3 font-semibold text-slate-600">Estado</th>
             <th className="text-left px-6 py-3 font-semibold text-slate-600">Fecha alta</th>
             <th className="text-right px-6 py-3 font-semibold text-slate-600">Acciones</th>
@@ -67,9 +68,11 @@ export function EmployeeTable({ employees, onEdit, onDeleted }: EmployeeTablePro
               <td className="px-6 py-3 text-slate-600">{employee.position ?? '—'}</td>
               <td className="px-6 py-3 text-slate-500">{employee.email ?? '—'}</td>
               <td className="px-6 py-3 text-slate-500">{employee.phone ?? '—'}</td>
-              <td className="px-6 py-3 text-right font-medium text-slate-700">
-                {formatSalary(employee.salary)}
-              </td>
+              {showSalary && (
+                <td className="px-6 py-3 text-right font-medium text-slate-700">
+                  {formatSalary(employee.salary)}
+                </td>
+              )}
               <td className="px-6 py-3">
                 <Badge variant={employee.active ? 'success' : 'default'}>
                   {employee.active ? 'Activo' : 'Inactivo'}
