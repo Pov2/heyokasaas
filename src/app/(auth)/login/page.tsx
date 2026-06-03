@@ -2,10 +2,13 @@
 
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const registered = searchParams.get('registered') === 'true'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -98,6 +101,12 @@ export default function LoginPage() {
             <p className="text-slate-500 mt-1">Accede a tu panel de gestión</p>
           </div>
 
+          {registered && (
+            <div className="mb-6 bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-lg">
+              ¡Cuenta creada! Ya puedes iniciar sesión.
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1.5">
@@ -145,6 +154,12 @@ export default function LoginPage() {
           </form>
 
           <p className="mt-6 text-center text-sm text-slate-500">
+            ¿No tienes cuenta?{' '}
+            <Link href="/register" className="text-amber-600 hover:text-amber-700 font-medium">
+              Regístrate
+            </Link>
+          </p>
+          <p className="mt-3 text-center text-sm text-slate-500">
             ¿Necesitas ayuda?{' '}
             <a href="mailto:soporte@heyoka.app" className="text-amber-600 hover:text-amber-700 font-medium">
               Contacta con soporte
